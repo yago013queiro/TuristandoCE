@@ -1,0 +1,33 @@
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-text);
+}
+
+h1 { font-size: calc(var(--text-4xl) * var(--font-scale)); }
+h2 { font-size: calc(var(--text-3xl) * var(--font-scale)); }
+h3 { font-size: calc(var(--text-2xl) * var(--font-scale)); }
+h4 { font-size: calc(var(--text-xl) * var(--font-scale)); }
+h5 { font-size: calc(var(--text-lg) * var(--font-scale)); }
+h6 { font-size: calc(var(--text-base) * var(--font-scale)); }
+
+.text-muted { color: var(--color-text-muted); }
+.text-sm { font-size: var(--text-sm); }
+.text-lg { font-size: var(--text-lg); }
+.text-center { text-align: center; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+
+.section-title {
+  font-size: calc(var(--text-2xl) * var(--font-scale));
+  font-weight: 700;
+  margin-bottom: var(--space-2);
+}
+
+.section-subtitle {
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-6);
+  max-width: 600px;
+}
