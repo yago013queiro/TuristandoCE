@@ -24,6 +24,9 @@ import { renderRegisterPage, bindRegisterPage } from './pages/register-page.js';
 import { renderAboutPage, bindAboutPage } from './pages/about-page.js';
 import { renderNotFoundPage, bindNotFoundPage } from './pages/not-found-page.js';
 
+import { updateMeta } from './utils/seo.js';
+import { entityRepository } from './storage/repositories/entity-repository.js';
+
 let cleanupFn = null;
 
 const routes = [
@@ -42,6 +45,38 @@ const routes = [
   { name: 'about', render: renderAboutPage, bind: bindAboutPage },
   { name: 'notFound', render: renderNotFoundPage, bind: bindNotFoundPage }
 ];
+
+function updateSEO(route) {
+  const { name, params } = route;
+  
+  if (['city', 'beach', 'hotel', 'restaurant', 'tour', 'event'].includes(name) && params.slug) {
+    const entity = entityRepository.getBySlug(params.slug);
+    if (entity) {
+      updateMeta({
+        title: `${entity.name} — Turistando CE`,
+        description: entity.summary || entity.description,
+        image: entity.coverImage,
+        url: window.location.href
+      });
+      return;
+    }
+  }
+
+  const titles = {
+    home: 'Turistando CE — Turismo no Ceará',
+    search: 'Buscar — Turistando CE',
+    map: 'Mapa — Turistando CE',
+    planner: 'Planejar viagem — Turistando CE',
+    profile: 'Meu perfil — Turistando CE',
+    register: 'Cadastrar — Turistando CE',
+    about: 'Sobre — Turistando CE'
+  };
+
+  updateMeta({
+    title: titles[name] || 'Turistando CE',
+    url: window.location.href
+  });
+}
 
 async function renderApp(route) {
   if (cleanupFn) {
@@ -66,7 +101,7 @@ async function renderApp(route) {
     ${renderAccessibilityToolbar()}
   `;
 
-  document.title = getPageTitle(route.name);
+  updateSEO(route);
 
   bindHeader(appRoot);
   bindFooter(appRoot);
@@ -86,20 +121,6 @@ async function renderApp(route) {
   }
 
   window.scrollTo(0, 0);
-}
-
-function getPageTitle(name) {
-  const titles = {
-    home: 'Turistando CE — Turismo no Ceará',
-    search: 'Buscar — Turistando CE',
-    city: 'Destino — Turistando CE',
-    map: 'Mapa — Turistando CE',
-    planner: 'Planejar viagem — Turistando CE',
-    profile: 'Meu perfil — Turistando CE',
-    register: 'Cadastrar — Turistando CE',
-    about: 'Sobre — Turistando CE'
-  };
-  return titles[name] || 'Turistando CE';
 }
 
 function init() {
