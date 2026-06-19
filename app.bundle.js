@@ -524,28 +524,37 @@ function initA11y() {
 }
 function setFontScale(delta) {
   const current = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--font-scale")) || 1;
-  const next = Math.min(1.4, Math.max(0.8, current + delta));
+  const next = parseFloat(Math.min(1.4, Math.max(0.8, current + delta)).toFixed(1));
   document.documentElement.style.setProperty("--font-scale", next);
   saveA11y({ fontScale: next });
+  showToast(`Tamanho do texto: ${Math.round(next * 100)}%`, "info");
   return next;
 }
 function toggleHighContrast() {
   const isOn = document.documentElement.dataset.highContrast === "true";
   document.documentElement.dataset.highContrast = isOn ? "false" : "true";
   saveA11y({ highContrast: !isOn });
+  showToast(isOn ? "Alto contraste desativado" : "Alto contraste ativado", "success");
   return !isOn;
 }
 function speakText(text) {
-  if (!("speechSynthesis" in window)) return false;
+  if (!("speechSynthesis" in window)) {
+    showToast("Leitura de tela não suportada neste navegador", "error");
+    return false;
+  }
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "pt-BR";
   utterance.rate = 0.9;
   window.speechSynthesis.speak(utterance);
+  showToast("Leitura de tela iniciada", "info");
   return true;
 }
-function stopSpeaking() {
-  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+function stopSpeaking(quiet = false) {
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+    if (!quiet) showToast("Leitura parada", "info");
+  }
 }
 function saveA11y(partial) {
   const current = JSON.parse(localStorage.getItem("turistando_a11y") || "{}");
@@ -1091,24 +1100,24 @@ function openAuthModal() {
       <form data-auth-form>
         ${mode === "register" ? `
           <div class="form-group">
-            <label class="form-label">Nome</label>
-            <input class="input" name="name" required>
+            <label class="form-label" for="auth-name">Nome</label>
+            <input class="input" id="auth-name" name="name" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Perfil</label>
-            <select class="select" name="role">
+            <label class="form-label" for="auth-role">Perfil</label>
+            <select class="select" id="auth-role" name="role">
               <option value="turista">Turista</option>
               <option value="parceiro">Parceiro (hotel/restaurante)</option>
             </select>
           </div>
         ` : ""}
         <div class="form-group">
-          <label class="form-label">E-mail</label>
-          <input class="input" type="email" name="email" required>
+          <label class="form-label" for="auth-email">E-mail</label>
+          <input class="input" type="email" id="auth-email" name="email" required>
         </div>
         <div class="form-group">
-          <label class="form-label">Senha</label>
-          <input class="input" type="password" name="password" required minlength="4">
+          <label class="form-label" for="auth-password">Senha</label>
+          <input class="input" type="password" id="auth-password" name="password" required minlength="4">
         </div>
         <button type="submit" class="btn btn--primary btn--block">${mode === "login" ? "Entrar" : "Criar conta"}</button>
       </form>
@@ -1193,7 +1202,7 @@ function renderFooter() {
         </div>
         <div class="site-footer__bottom">
           <span>\xA9 2026 Turistando CE. Todos os direitos reservados.</span>
-          <button data-a11y-open class="btn btn--ghost btn--sm" style="color:rgba(255,255,255,0.8);border-color:rgba(255,255,255,0.3)">\u267F Acessibilidade</button>
+          <button type="button" data-a11y-open class="btn btn--ghost btn--sm" style="color:rgba(255,255,255,0.8);border-color:rgba(255,255,255,0.3)"><span aria-hidden="true">\u267F</span> Acessibilidade</button>
         </div>
       </div>
     </footer>
@@ -1212,13 +1221,13 @@ function renderAccessibilityToolbar() {
   return `
     <div class="a11y-toolbar" data-a11y-toolbar>
       <div class="a11y-toolbar__panel">
-        <button class="a11y-toolbar__btn" data-a11y-font-up>\u{1F524} A+ Aumentar fonte</button>
-        <button class="a11y-toolbar__btn" data-a11y-font-down>\u{1F521} A- Diminuir fonte</button>
-        <button class="a11y-toolbar__btn" data-a11y-contrast>\u25D0 Alto contraste</button>
-        <button class="a11y-toolbar__btn" data-a11y-speak>\u{1F50A} Leitura por voz</button>
-        <button class="a11y-toolbar__btn" data-a11y-stop>\u23F9 Parar leitura</button>
+        <button type="button" class="a11y-toolbar__btn" data-a11y-font-up><span aria-hidden="true">\u{1F524}</span> A+ Aumentar fonte</button>
+        <button type="button" class="a11y-toolbar__btn" data-a11y-font-down><span aria-hidden="true">\u{1F521}</span> A- Diminuir fonte</button>
+        <button type="button" class="a11y-toolbar__btn" data-a11y-contrast><span aria-hidden="true">\u25D0</span> Alto contraste</button>
+        <button type="button" class="a11y-toolbar__btn" data-a11y-speak><span aria-hidden="true">\u{1F50A}</span> Leitura por voz</button>
+        <button type="button" class="a11y-toolbar__btn" data-a11y-stop><span aria-hidden="true">\u23F9</span> Parar leitura</button>
       </div>
-      <button class="a11y-toolbar__toggle" aria-label="Ferramentas de acessibilidade">\u267F</button>
+      <button type="button" class="a11y-toolbar__toggle" aria-label="Ferramentas de acessibilidade"><span aria-hidden="true">\u267F</span></button>
     </div>
   `;
 }
@@ -1235,9 +1244,11 @@ function bindAccessibilityToolbar(container) {
     const main = document.getElementById("main-content");
     if (main) speakText(main.innerText.slice(0, 2e3));
   });
-  toolbar.querySelector("[data-a11y-stop]")?.addEventListener("click", stopSpeaking);
-  document.querySelector("[data-a11y-open]")?.addEventListener("click", () => {
-    toolbar.classList.add("is-open");
+  toolbar.querySelector("[data-a11y-stop]")?.addEventListener("click", () => stopSpeaking());
+  container.querySelectorAll("[data-a11y-open]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      toolbar.classList.add("is-open");
+    });
   });
 }
 
@@ -1859,7 +1870,7 @@ function renderHomePage() {
           ${news.map((n) => `
             <a href="${n.link}" data-nav class="news-card">
               <div class="news-card__image aspect-4-3 overflow-hidden">
-                <img src="${n.image}" alt="" class="object-cover" loading="lazy">
+                <img src="${n.image}" alt="${n.title}" class="object-cover" loading="lazy">
               </div>
               <div class="news-card__body">
                 <h3 class="font-semibold">${n.title}</h3>
@@ -1957,39 +1968,39 @@ function renderFilterPanel({ activeFilters = {} } = {}) {
   ];
   return `
     <div class="search-filters" data-filter-panel>
-      <div class="search-filters__group">
-        <label>Tipo</label>
+      <div class="search-filters__group" role="group" aria-labelledby="filter-group-type">
+        <label id="filter-group-type">Tipo</label>
         <div class="chip-group" data-filter-type>
           ${types.map((t) => `
-            <button class="chip ${activeFilters.type === t.id ? "is-active" : ""}"
+            <button type="button" class="chip ${activeFilters.type === t.id ? "is-active" : ""}"
               data-value="${t.id}">${t.label}</button>
           `).join("")}
         </div>
       </div>
       <div class="search-filters__group">
-        <label>Cidade</label>
-        <select class="select" data-filter-city style="min-width:160px">
+        <label for="filter-city">Cidade</label>
+        <select id="filter-city" class="select" data-filter-city style="min-width:160px">
           <option value="">Todas</option>
           ${cities.map((c) => `<option value="${c.id}" ${activeFilters.cityId === c.id ? "selected" : ""}>${c.name}</option>`).join("")}
         </select>
       </div>
-      <div class="search-filters__group">
-        <label>Tags</label>
+      <div class="search-filters__group" role="group" aria-labelledby="filter-group-tags">
+        <label id="filter-group-tags">Tags</label>
         <div class="chip-group" data-filter-tags>
           ${TAGS.slice(0, 8).map((t) => `
-            <button class="chip ${(activeFilters.tags || []).includes(t.id) ? "is-active" : ""}"
+            <button type="button" class="chip ${(activeFilters.tags || []).includes(t.id) ? "is-active" : ""}"
               data-value="${t.id}">${t.label}</button>
           `).join("")}
         </div>
       </div>
       <div class="search-filters__group">
-        <label>Pre\xE7o m\xE1ximo</label>
-        <input type="range" data-filter-price min="0" max="2000" step="100" value="2000">
+        <label for="filter-price">Pre\xE7o m\xE1ximo</label>
+        <input type="range" id="filter-price" data-filter-price min="0" max="2000" step="100" value="2000">
         <span class="text-sm text-muted" data-price-label>Qualquer pre\xE7o</span>
       </div>
       <div class="search-filters__group">
-        <label>Ordenar</label>
-        <select class="select" data-filter-sort style="min-width:140px">
+        <label for="filter-sort">Ordenar</label>
+        <select id="filter-sort" class="select" data-filter-sort style="min-width:140px">
           <option value="relevance" ${activeFilters.sort === "relevance" ? "selected" : ""}>Relev\xE2ncia</option>
           <option value="rating" ${activeFilters.sort === "rating" ? "selected" : ""}>Avalia\xE7\xE3o</option>
           <option value="price-asc" ${activeFilters.sort === "price-asc" ? "selected" : ""}>Menor pre\xE7o</option>
@@ -2179,9 +2190,11 @@ function bindGallery(container) {
   container.querySelectorAll("[data-lightbox]").forEach((item) => {
     item.addEventListener("click", () => {
       const src = item.dataset.lightbox;
+      const imgEl = item.querySelector("img");
+      const altText = imgEl ? imgEl.alt : "Foto da galeria";
       const lb = document.createElement("div");
       lb.className = "lightbox";
-      lb.innerHTML = `<button class="lightbox__close" aria-label="Fechar">&times;</button><img src="${src}" alt="">`;
+      lb.innerHTML = `<button class="lightbox__close" aria-label="Fechar">&times;</button><img src="${src}" alt="${altText}">`;
       lb.querySelector(".lightbox__close").addEventListener("click", () => lb.remove());
       lb.addEventListener("click", (e) => {
         if (e.target === lb) lb.remove();
@@ -2800,7 +2813,7 @@ function renderProfilePage(route) {
         <div class="tab-panel ${tab === "historico" ? "is-active" : ""}" data-panel="historico">
           ${history2.length ? history2.map((h) => `
             <a href="#" data-nav data-history-slug="${h.slug}" data-history-type="${h.entityType}" class="history-item">
-              <div class="history-item__image"><img src="${h.coverImage}" alt="" class="object-cover"></div>
+              <div class="history-item__image"><img src="${h.coverImage}" alt="${h.name}" class="object-cover"></div>
               <div>
                 <strong>${h.name}</strong>
                 <p class="history-item__date">${h.cityName} \xB7 ${formatRelativeDate(h.viewedAt)}</p>
@@ -3291,6 +3304,7 @@ async function renderApp(route) {
     cleanupFn = null;
   }
   destroyMap();
+  stopSpeaking(true);
   let routeConfig = routes.find((r) => r.name === route.name) || routes.find((r) => r.name === "notFound");
   let pageModule = null;
   let content = null;
